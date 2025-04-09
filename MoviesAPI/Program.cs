@@ -1,6 +1,9 @@
 
 using System.Security.Cryptography.Xml;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MoviesAPI.Data;
 
@@ -37,7 +40,7 @@ namespace MoviesAPI
 
             options.AddSecurityDefinition(name: "Bearer", securityScheme:new OpenApiSecurityScheme
             {
-                Name = "Ahuothrization",
+                Name = "Authorization",
                 Type = SecuritySchemeType.ApiKey,
                 Scheme = "Bearer",
                 BearerFormat = "jwt",
@@ -45,6 +48,7 @@ namespace MoviesAPI
                 Description = "Enter your jwt key"
 
             });
+
 
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
@@ -65,6 +69,26 @@ namespace MoviesAPI
                 });
 
          });
+            var jwtSettings = builder.Configuration.GetSection("Jwt");
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+              .AddJwtBearer(options =>
+              {
+                  options.TokenValidationParameters = new TokenValidationParameters
+                  {
+                      ValidateIssuer = true,
+                      ValidateAudience = true,
+                      ValidateLifetime = true,
+                      ValidateIssuerSigningKey = true,
+                      ValidIssuer = jwtSettings["Issuer"],
+                      ValidAudience = jwtSettings["Audience"],
+                      IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+                  };
+              });
 
             var app = builder.Build();
 
